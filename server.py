@@ -20,7 +20,7 @@ class QuestionRequest(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    with open("static/index.html") as f:
+    with open("static/index.html", encoding="utf-8") as f:
         return f.read()
 
 
