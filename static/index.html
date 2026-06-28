@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Research Assistant</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      color: #888;
+      margin-top: 8px;
+      font-size: 0.95rem;
+    }
+
+    .search-box {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .search-box input {
+      flex: 1;
+      padding: 14px 18px;
+      border-radius: 10px;
+      border: 1px solid #2a2a3a;
+      background: #1a1a2e;
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: #6c63ff;
+    }
+
+    .search-box button {
+      padding: 14px 24px;
+      border-radius: 10px;
+      border: none;
+      background: #6c63ff;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .search-box button:hover { background: #5a52d5; }
+    .search-box button:disabled { background: #444; cursor: not-allowed; }
+
+    /* Pipeline status */
+    #pipeline {
+      display: none;
+      width: 100%;
+      max-width: 720px;
+      margin-top: 32px;
+      gap: 12px;
+      flex-direction: column;
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 16px 18px;
+      border-radius: 10px;
+      background: #1a1a2e;
+      border: 1px solid #2a2a3a;
+      opacity: 0.4;
+      transition: opacity 0.3s;
+    }
+
+    .step.active { opacity: 1; border-color: #6c63ff; }
+    .step.done   { opacity: 1; border-color: #2ea043; }
+
+    .step-icon {
+      font-size: 1.3rem;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
+    .step-body h3 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .step-body p {
+      font-size: 0.82rem;
+      color: #888;
+      line-height: 1.5;
+    }
+
+    /* Report */
+    #report-section {
+      display: none;
+      width: 100%;
+      max-width: 720px;
+      margin-top: 32px;
+    }
+
+    #report-section h2 {
+      font-size: 1rem;
+      color: #888;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    #report {
+      background: #1a1a2e;
+      border: 1px solid #2a2a3a;
+      border-radius: 12px;
+      padding: 32px;
+      line-height: 1.75;
+    }
+
+    /* Markdown styles inside report */
+    #report h1, #report h2, #report h3 {
+      color: #fff;
+      margin: 1.2em 0 0.5em;
+      font-weight: 600;
+    }
+    #report h1 { font-size: 1.5rem; }
+    #report h2 { font-size: 1.2rem; border-bottom: 1px solid #2a2a3a; padding-bottom: 6px; }
+    #report h3 { font-size: 1rem; color: #a78bfa; }
+    #report p  { margin-bottom: 1em; color: #ccc; }
+    #report a  { color: #6c63ff; text-decoration: none; }
+    #report a:hover { text-decoration: underline; }
+    #report ul, #report ol { padding-left: 1.5em; margin-bottom: 1em; color: #ccc; }
+    #report li { margin-bottom: 4px; }
+    #report strong { color: #fff; }
+    #report code {
+      background: #0f1117;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: #a78bfa;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #555;
+      border-top-color: #6c63ff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Research Assistant</h1>
+  <p>Ask any question — get a cited research report in seconds</p>
+</header>
+
+<div class="search-box">
+  <input id="question" type="text" placeholder="e.g. What are the latest breakthroughs in fusion energy?" />
+  <button id="btn" onclick="startResearch()">Research</button>
+</div>
+
+<!-- Pipeline steps -->
+<div id="pipeline">
+  <div class="step" id="step-planner">
+    <div class="step-icon">🧠</div>
+    <div class="step-body">
+      <h3>Planner <span id="planner-spinner"></span></h3>
+      <p id="planner-detail">Breaking your question into search queries...</p>
+    </div>
+  </div>
+  <div class="step" id="step-searcher">
+    <div class="step-icon">🔍</div>
+    <div class="step-body">
+      <h3>Searcher <span id="searcher-spinner"></span></h3>
+      <p id="searcher-detail">Searching the web with Tavily...</p>
+    </div>
+  </div>
+  <div class="step" id="step-synthesizer">
+    <div class="step-icon">✍️</div>
+    <div class="step-body">
+      <h3>Synthesizer <span id="synthesizer-spinner"></span></h3>
+      <p id="synthesizer-detail">Writing your report...</p>
+    </div>
+  </div>
+</div>
+
+<!-- Report output -->
+<div id="report-section">
+  <h2>Report</h2>
+  <div id="report"></div>
+</div>
+
+<script>
+  async function startResearch() {
+    const question = document.getElementById("question").value.trim();
+    if (!question) return;
+
+    const btn = document.getElementById("btn");
+    btn.disabled = true;
+    btn.textContent = "Researching...";
+
+    // Reset UI
+    document.getElementById("pipeline").style.display = "flex";
+    document.getElementById("report-section").style.display = "none";
+    document.getElementById("report").innerHTML = "";
+
+    ["planner", "searcher", "synthesizer"].forEach(s => {
+      const el = document.getElementById("step-" + s);
+      el.classList.remove("active", "done");
+    });
+
+    activate("planner");
+
+    const response = await fetch("/research", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question }),
+    });
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split("\n\n");
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const data = JSON.parse(line.slice(6));
+
+        if (data.node === "planner") {
+          complete("planner");
+          document.getElementById("planner-detail").innerHTML =
+            "Generated queries:<br>" + data.queries.map(q => `• ${q}`).join("<br>");
+          activate("searcher");
+        }
+
+        if (data.node === "searcher") {
+          complete("searcher");
+          document.getElementById("searcher-detail").textContent =
+            `Retrieved ${data.count} source documents.`;
+          activate("synthesizer");
+        }
+
+        if (data.node === "synthesizer") {
+          complete("synthesizer");
+          document.getElementById("report-section").style.display = "block";
+          document.getElementById("report").innerHTML = marked.parse(data.report);
+        }
+
+        if (data.node === "done") {
+          btn.disabled = false;
+          btn.textContent = "Research";
+        }
+      }
+    }
+  }
+
+  function activate(name) {
+    const el = document.getElementById("step-" + name);
+    el.classList.add("active");
+    document.getElementById(name + "-spinner").innerHTML = '<span class="spinner"></span>';
+  }
+
+  function complete(name) {
+    const el = document.getElementById("step-" + name);
+    el.classList.remove("active");
+    el.classList.add("done");
+    document.getElementById(name + "-spinner").innerHTML = " ✓";
+  }
+
+  document.getElementById("question").addEventListener("keydown", e => {
+    if (e.key === "Enter") startResearch();
+  });
+</script>
+
+</body>
+</html>
