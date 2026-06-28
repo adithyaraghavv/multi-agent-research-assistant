@@ -1,6 +1,7 @@
-import anthropic
+import os
+from groq import Groq
 
-client = anthropic.Anthropic()
+client = Groq(api_key=os.environ["GROQ_API_KEY"])
 
 
 def synthesizer_node(state: dict) -> dict:
@@ -14,28 +15,32 @@ def synthesizer_node(state: dict) -> dict:
             f"[{i}] {r['title']}\nURL: {r['url']}\n{r['content'][:800]}\n\n"
         )
 
-    system_prompt = (
-        "You are an expert research analyst. Using the provided sources, write a "
-        "comprehensive, well-structured markdown report that answers the user's "
-        "question. Requirements:\n"
-        "- Use clear headings and subheadings\n"
-        "- Cite sources inline using [N] notation\n"
-        "- Include a ## References section at the end listing all cited sources\n"
-        "- Be factual and objective; note conflicting information where it exists\n"
-        "- Aim for depth and clarity"
-    )
-
-    user_content = (
-        f"## Question\n{question}\n\n"
-        f"## Sources\n{sources_block}\n\n"
-        "Write the research report now."
-    )
-
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
         max_tokens=4096,
-        system=system_prompt,
-        messages=[{"role": "user", "content": user_content}],
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are an expert research analyst. Using the provided sources, write a "
+                    "comprehensive, well-structured markdown report that answers the user's "
+                    "question. Requirements:\n"
+                    "- Use clear headings and subheadings\n"
+                    "- Cite sources inline using [N] notation\n"
+                    "- Include a ## References section at the end listing all cited sources\n"
+                    "- Be factual and objective; note conflicting information where it exists\n"
+                    "- Aim for depth and clarity"
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"## Question\n{question}\n\n"
+                    f"## Sources\n{sources_block}\n\n"
+                    "Write the research report now."
+                ),
+            },
+        ],
     )
 
-    return {"report": response.content[0].text}
+    return {"report": response.choices[0].message.content}

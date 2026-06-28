@@ -1,27 +1,32 @@
 import json
-import anthropic
+import os
+from groq import Groq
 
-client = anthropic.Anthropic()
+client = Groq(api_key=os.environ["GROQ_API_KEY"])
 
 
 def planner_node(state: dict) -> dict:
     """Break the user question into focused search queries."""
     question = state["question"]
 
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
         max_tokens=512,
-        system=(
-            "You are a research planner. Given a question, produce 3-5 focused "
-            "web search queries that together will gather enough information to "
-            "answer it thoroughly. Return ONLY a JSON array of query strings, "
-            "no explanation."
-        ),
-        messages=[{"role": "user", "content": question}],
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a research planner. Given a question, produce 3-5 focused "
+                    "web search queries that together will gather enough information to "
+                    "answer it thoroughly. Return ONLY a JSON array of query strings, "
+                    "no explanation."
+                ),
+            },
+            {"role": "user", "content": question},
+        ],
     )
 
-    raw = response.content[0].text.strip()
-    # strip markdown code fences if present
+    raw = response.choices[0].message.content.strip()
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
